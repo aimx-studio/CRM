@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AIMAX STUDIO — CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ══ LOCK SCREEN ══ -->
+<div class="lock" id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-ico">🔐</div>
+    <div class="lock-title">AIMAX STUDIO</div>
+    <div class="lock-sub">CRM — Acceso Seguro</div>
+    <label class="lock-lbl">Contraseña</label>
+    <input class="lock-inp" id="lockPass" type="password" placeholder="••••••••" maxlength="30" onkeydown="if(event.key==='Enter')checkPass()">
+    <button class="lock-btn" onclick="checkPass()">ENTRAR</button>
+    <div class="lock-err" id="lockErr"></div>
+  </div>
+</div>
+
+<div class="ov" id="ov" onclick="closeSB()"></div>
+
+<!-- ══ APP ══ -->
+<div class="app" id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sb" id="sb">
+    <div class="sb-brand">
+      <div class="sb-mark"></div>
+      <div>
+        <div class="sb-name">AIMAX</div>
+        <div class="sb-tag">CRM Studio</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-sec">Principal</div>
+      <div class="ni on" data-p="dashboard" onclick="go('dashboard',this)"><span class="ico">📊</span>Dashboard</div>
+      <div class="ni" data-p="clientes" onclick="go('clientes',this)"><span class="ico">🍽️</span>Clientes<span class="nb show" id="nb-cl">0</span></div>
+      <div class="ni" data-p="pagos" onclick="go('pagos',this)"><span class="ico">💳</span>Pagos</div>
+      <div class="nav-sec">Ventas</div>
+      <div class="ni" data-p="pipeline" onclick="go('pipeline',this)"><span class="ico">📣</span>Pipeline<span class="nb blue show" id="nb-pipe">0</span></div>
+      <div class="ni" data-p="metas" onclick="go('metas',this)"><span class="ico">🎯</span>Metas</div>
+      <div class="ni" data-p="analytics" onclick="go('analytics',this)"><span class="ico">📈</span>Analytics</div>
+      <div class="nav-sec">Operación</div>
+      <div class="ni" data-p="tareas" onclick="go('tareas',this)"><span class="ico">✅</span>Tareas<span class="nb" id="nb-tk"></span></div>
+      <div class="ni" data-p="notas" onclick="go('notas',this)"><span class="ico">📝</span>Notas</div>
+      <div class="ni" data-p="archivos" onclick="go('archivos',this)"><span class="ico">📁</span>Archivos</div>
+      <div class="ni" data-p="config" onclick="go('config',this)"><span class="ico">⚙️</span>Configuración</div>
+    </nav>
+    <div class="sb-foot">
+      <span id="yr"></span>
+      <div class="sb-foot-dot"></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="tb">
+      <div class="tb-l">
+        <button class="hbg" onclick="toggleSB()"><span></span><span></span><span></span></button>
+        <div class="pt" id="ptitle">Dashboard</div>
+      </div>
+      <div class="tb-r">
+        <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+        <div class="tb-time" id="tbtime"></div>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="pg on" id="pg-dashboard">
+      <div class="kpis cols4" id="d-kpis"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="chart-ctrl">
+            <div class="chart-ctrl-t">Ingresos por mes</div>
+            <div class="chart-nav">
+              <button class="cn-btn" onclick="chartNav('dash',-1)">◀</button>
+              <span class="cn-lbl" id="d-lbl"></span>
+              <button class="cn-btn" onclick="chartNav('dash',1)">▶</button>
+              <select class="cn-sel" id="d-months" onchange="rDash()">
+                <option value="4">4m</option>
+                <option value="6" selected>6m</option>
+                <option value="9">9m</option>
+                <option value="12">12m</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-bar-wrap" id="d-bar"></div>
+        </div>
+        <div class="card">
+          <div class="card-t">Distribución clientes</div>
+          <div class="donut-wrap" style="height:120px">
+            <canvas id="d-donut" width="100" height="100"></canvas>
+            <div class="dleg" id="d-dleg"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Cobros table replaced with cards for mobile -->
+      <div class="sh"><div class="st">⚡ Cobros próximos</div></div>
+      <div id="d-cobro-alert"></div>
+      <div class="sh"><div class="st">Todos los cobros</div></div>
+      <div id="d-cobros"></div>
+      <div class="sh" style="margin-top:14px"><div class="st">Pipeline activo</div><a class="btn btn-ghost btn-sm" onclick="go('pipeline',null)">Ver todo →</a></div>
+      <div id="d-pipe-mini"></div>
+    </div>
+
+    <!-- ── CLIENTES ── -->
+    <div class="pg" id="pg-clientes">
+      <div class="sh"><div class="st">Mis clientes</div><button class="btn btn-g" onclick="openM('mCl')">＋ Nuevo</button></div>
+      <div class="sw"><input type="text" placeholder="Buscar restaurante, ciudad o admin..." oninput="filtCl(this.value)"></div>
+      <div class="chips">
+        <div class="chip on" onclick="setClF('todos',this)">Todos</div>
+        <div class="chip" onclick="setClF('activo',this)">Activos</div>
+        <div class="chip" onclick="setClF('prueba',this)">En prueba</div>
+        <div class="chip" onclick="setClF('inactivo',this)">Inactivos</div>
+        <div class="chip" onclick="setClF('basico',this)">Plan Básico</div>
+        <div class="chip" onclick="setClF('medio',this)">Plan Medio</div>
+        <div class="chip" onclick="setClF('max',this)">Plan MAX</div>
+      </div>
+      <div class="cl-list" id="cl-list"></div>
+    </div>
+
+    <!-- ── PAGOS ── -->
+    <div class="pg" id="pg-pagos">
+      <div class="sh"><div class="st">Pagos</div><button class="btn btn-g" onclick="openM('mPago')">＋ Registrar</button></div>
+      <div class="kpis" id="p-kpis" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div class="gline"></div>
+      <div class="chips">
+        <div class="chip on" onclick="setPagoF('todos',this)">Todos</div>
+        <div class="chip" onclick="setPagoF('pagado',this)">Pagados</div>
+        <div class="chip" onclick="setPagoF('pendiente',this)">Pendientes</div>
+        <div class="chip" onclick="setPagoF('mensualidad',this)">Mensualidades</div>
+        <div class="chip" onclick="setPagoF('instalacion',this)">Set up</div>
+      </div>
+      <div id="p-list"></div>
+    </div>
+
+    <!-- ── PIPELINE ── -->
+    <div class="pg" id="pg-pipeline">
+      <div class="sh"><div class="st">Pipeline</div><button class="btn btn-g" onclick="openM('mPipe')">＋ Lead</button></div>
+      <div class="kpis cols4" id="pi-kpis"></div>
+      <div class="pipe-cols" id="pi-board"></div>
+    </div>
+
+    <!-- ── METAS ── -->
+    <div class="pg" id="pg-metas">
+      <div class="sh"><div class="st">Metas del mes</div><button class="btn btn-g" onclick="openM('mMeta')">✏️ Editar</button></div>
+      <div id="metas-wrap"></div>
+    </div>
+
+    <!-- ── ANALYTICS ── -->
+    <div class="pg" id="pg-analytics">
+      <div class="sh"><div class="st">Analytics</div></div>
+      <div class="kpis cols4" id="an-kpis"></div>
+      <div class="g2">
+        <div class="card">
+          <div class="chart-ctrl">
+            <div class="chart-ctrl-t">MRR acumulado</div>
+            <div class="chart-nav">
+              <button class="cn-btn" onclick="chartNav('an',-1)">◀</button>
+              <span class="cn-lbl" id="an-lbl"></span>
+              <button class="cn-btn" onclick="chartNav('an',1)">▶</button>
+              <select class="cn-sel" id="an-months" onchange="rAnalytics()">
+                <option value="4">4m</option>
+                <option value="6" selected>6m</option>
+                <option value="9">9m</option>
+                <option value="12">12m</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-bar-wrap" id="an-mrr"></div>
+        </div>
+        <div class="card">
+          <div class="card-t">Distribución de planes</div>
+          <div class="donut-wrap" style="height:120px">
+            <canvas id="an-donut" width="100" height="100"></canvas>
+            <div class="dleg" id="an-dleg"></div>
+          </div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-t">Ingresos por tipo (histórico)</div>
+          <div class="chart-bar-wrap" id="an-tipos"></div>
+        </div>
+        <div class="card" id="an-stats"><div class="card-t">Métricas clave</div></div>
+      </div>
+    </div>
+
+    <!-- ── TAREAS ── -->
+    <div class="pg" id="pg-tareas">
+      <div class="sh"><div class="st">Tareas</div><button class="btn btn-g" onclick="openM('mTarea')">＋ Nueva</button></div>
+      <div class="chips">
+        <div class="chip on" onclick="setTkF('todas',this)">Todas</div>
+        <div class="chip" onclick="setTkF('pendiente',this)">Pendientes</div>
+        <div class="chip" onclick="setTkF('hecha',this)">Completadas</div>
+      </div>
+      <div class="card" style="padding:4px 14px" id="tk-wrap"></div>
+    </div>
+
+    <!-- ── NOTAS ── -->
+    <div class="pg" id="pg-notas">
+      <div class="sh"><div class="st">Mis Notas</div></div>
+      <div class="chips">
+        <div class="chip on" onclick="setNotaF('todas',this)">Todas</div>
+        <div class="chip" onclick="setNotaF('destacadas',this)">⭐ Destacadas</div>
+      </div>
+      <div class="notas-grid" id="notas-grid"></div>
+    </div>
+
+    <!-- ── ARCHIVOS ── -->
+    <div class="pg" id="pg-archivos">
+      <div class="sh"><div class="st">Archivos</div><button class="btn btn-g" onclick="openM('mArchivo')">＋ Agregar</button></div>
+
+      <!-- ── LINKS AIMAX ── -->
+      <div class="card" style="margin-bottom:18px;border:1px solid var(--gd)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:11px;color:var(--g);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px">🔗 Links AIMAX</div>
+            <div style="font-size:11px;color:var(--t3)">Tus documentos y recursos para compartir con clientes</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="openM('mAimaxLink')">＋ Nuevo link</button>
+        </div>
+        <div id="aimax-links-wrap">
+          <div class="empty" style="padding:20px 0"><div class="ei" style="font-size:28px">🔗</div><div class="et">Sin links aún</div></div>
+        </div>
+      </div>
+
+      <!-- ── ARCHIVOS DE CLIENTES ── -->
+      <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:10px">📁 Archivos por cliente</div>
+      <div class="chips" id="ar-chips"></div>
+      <div id="ar-wrap"></div>
+    </div>
+
+    <!-- ── CONFIG ── -->
+    <div class="pg" id="pg-config">
+      <div class="sh"><div class="st">Configuración</div></div>
+      <div id="cfg-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Cliente -->
+<div class="mo" id="mCl"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title" id="mCl-title">Nuevo Cliente</div>
+  <div class="fg"><label class="fl">Restaurante *</label><input class="fi" id="c_nom" placeholder="Ej: Asados El Rey"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Ciudad *</label><input class="fi" id="c_ciu" placeholder="Ej: Montería"></div>
+    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="c_tel" placeholder="3001234567" inputmode="numeric"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Nombre admin</label><input class="fi" id="c_adm" placeholder="Nombre del dueño"></div>
+    <div class="fg"><label class="fl">WhatsApp</label><input class="fi" id="c_wa" placeholder="3001234567" inputmode="numeric"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Plan</label>
+      <select class="fs" id="c_plan">
+        <option value="basico">Básico — $50.000/mes</option>
+        <option value="medio">Medio — $100.000/mes</option>
+        <option value="max">MAX — $150.000/mes</option>
+        <option value="especial">Especial</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Estado</label>
+      <select class="fs" id="c_est">
+        <option value="activo">Activo</option>
+        <option value="prueba">En prueba</option>
+        <option value="inactivo">Inactivo</option>
+      </select>
+    </div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Set up (COP)</label><input class="fi" id="c_su" type="number" placeholder="222000" inputmode="numeric"></div>
+    <div class="fg"><label class="fl">Día de cobro</label><input class="fi" id="c_dia" type="number" placeholder="1-31" min="1" max="31" inputmode="numeric"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Último pago</label><input class="fi" id="c_up" type="date"></div>
+    <div class="fg"><label class="fl">Inicio como cliente</label><input class="fi" id="c_inicio" type="date"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Link menú</label><input class="fi" id="c_lnk" placeholder="https://..." inputmode="url"></div>
+    <div class="fg"><label class="fl">Link dashboard</label><input class="fi" id="c_dash" placeholder="https://..." inputmode="url"></div>
+  </div>
+  <div class="fg"><label class="fl">Repo GitHub</label><input class="fi" id="c_repo" placeholder="Ej: Menu-Kosiaka"></div>
+  <div class="fg"><label class="fl">Notas</label><textarea class="fta" id="c_not" placeholder="Observaciones..."></textarea></div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mCl')">Cancelar</button>
+    <button class="btn btn-g" onclick="saveCl()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Ver cliente -->
+<div class="mo" id="mVerCl"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title" id="mVer-title"></div>
+  <div id="mVer-body"></div>
+  <div class="mf">
+    <button class="btn btn-danger btn-sm" id="mVer-del">Eliminar</button>
+    <button class="btn btn-ghost" onclick="closeM('mVerCl')">Cerrar</button>
+    <button class="btn btn-g" id="mVer-edit">Editar</button>
+  </div>
+</div></div>
+
+<!-- Pago nuevo -->
+<div class="mo" id="mPago"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title">Registrar Pago</div>
+  <div class="fg"><label class="fl">Cliente *</label><select class="fs" id="p_cl"></select></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Tipo *</label>
+      <select class="fs" id="p_tp">
+        <option value="mensualidad">Mensualidad</option>
+        <option value="instalacion">Instalación (Set up)</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Monto (COP) *</label><input class="fi" id="p_mo" type="number" placeholder="50000" inputmode="numeric"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Fecha *</label><input class="fi" id="p_fe" type="date"></div>
+    <div class="fg"><label class="fl">Estado</label>
+      <select class="fs" id="p_es">
+        <option value="pagado">Pagado</option>
+        <option value="pendiente">Pendiente</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Notas</label><input class="fi" id="p_nt" placeholder="Ej: Transferencia Nequi"></div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mPago')">Cancelar</button>
+    <button class="btn btn-g" onclick="savePago()">Registrar</button>
+  </div>
+</div></div>
+
+<!-- Editar pago -->
+<div class="mo" id="mEditPago"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title">✏️ Editar Pago</div>
+  <input type="hidden" id="ep_id">
+  <div class="fg"><label class="fl">Cliente *</label><select class="fs" id="ep_cl"></select></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Tipo *</label>
+      <select class="fs" id="ep_tp">
+        <option value="mensualidad">Mensualidad</option>
+        <option value="instalacion">Instalación (Set up)</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Monto (COP) *</label><input class="fi" id="ep_mo" type="number" inputmode="numeric"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Fecha *</label><input class="fi" id="ep_fe" type="date"></div>
+    <div class="fg"><label class="fl">Estado</label>
+      <select class="fs" id="ep_es">
+        <option value="pagado">Pagado</option>
+        <option value="pendiente">Pendiente</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Notas</label><input class="fi" id="ep_nt" placeholder="Ej: Transferencia Nequi"></div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mEditPago')">Cancelar</button>
+    <button class="btn btn-g" onclick="saveEditPago()">Guardar cambios</button>
+  </div>
+</div></div>
+
+<!-- Pipeline -->
+<div class="mo" id="mPipe"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title" id="mPipe-title">Nuevo Lead</div>
+  <div class="fg"><label class="fl">Restaurante *</label><input class="fi" id="pi_nom" placeholder="Ej: Restaurante El Rancho"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Ciudad</label><input class="fi" id="pi_ciu" placeholder="Montería"></div>
+    <div class="fg"><label class="fl">WhatsApp</label><input class="fi" id="pi_wa" placeholder="3001234567" inputmode="numeric"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Etapa</label>
+      <select class="fs" id="pi_eta">
+        <option value="contactado">📞 Contactado</option>
+        <option value="demo">🎬 Demo</option>
+        <option value="propuesta">📄 Propuesta</option>
+        <option value="cerrado">🎉 Cerrado</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Interés</label>
+      <select class="fs" id="pi_int">
+        <option value="alto">🔥 Alto</option>
+        <option value="medio">🌡 Medio</option>
+        <option value="bajo">❄️ Bajo</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Notas</label><textarea class="fta" id="pi_not" placeholder="Qué se habló, qué sigue..."></textarea></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Próxima acción</label><input class="fi" id="pi_prox" placeholder="Ej: Enviar propuesta, Agendar demo..."></div>
+    <div class="fg"><label class="fl">Fecha próxima acción</label><input class="fi" id="pi_prox_fecha" type="date"></div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mPipe')">Cancelar</button>
+    <button class="btn btn-g" onclick="savePipe()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Metas -->
+<div class="mo" id="mMeta"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title">Metas del mes</div>
+  <div class="fg"><label class="fl">Meta de ingresos (COP)</label><input class="fi" id="m_ing" type="number" inputmode="numeric"></div>
+  <div class="fg"><label class="fl">Meta de clientes activos</label><input class="fi" id="m_cl" type="number" inputmode="numeric"></div>
+  <div class="fg"><label class="fl">Meta de leads en pipeline</label><input class="fi" id="m_pi" type="number" inputmode="numeric"></div>
+  <div class="fg"><label class="fl">Meta de cierres este mes</label><input class="fi" id="m_ci" type="number" inputmode="numeric"></div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mMeta')">Cancelar</button>
+    <button class="btn btn-g" onclick="saveMeta()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Tarea -->
+<div class="mo" id="mTarea"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title">Nueva Tarea</div>
+  <div class="fg"><label class="fl">Descripción *</label><input class="fi" id="t_tx" placeholder="Ej: Actualizar menú de Kosiaka"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Cliente relacionado</label><select class="fs" id="t_cl"></select></div>
+    <div class="fg"><label class="fl">Prioridad</label>
+      <select class="fs" id="t_pr">
+        <option value="alta">🔴 Alta</option>
+        <option value="normal">🟡 Normal</option>
+        <option value="baja">🟢 Baja</option>
+      </select>
+    </div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label class="fl">Fecha límite</label><input class="fi" id="t_dl" type="date"></div>
+    <div class="fg"></div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mTarea')">Cancelar</button>
+    <button class="btn btn-g" onclick="saveTarea()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Archivo -->
+<div class="mo" id="mArchivo"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title">Agregar Archivo</div>
+  <div class="fg"><label class="fl">Cliente *</label><select class="fs" id="a_cl"></select></div>
+  <div class="fg"><label class="fl">Nombre del archivo *</label><input class="fi" id="a_nom" placeholder="Ej: Repo GitHub del menú"></div>
+  <div class="fg"><label class="fl">URL / Link *</label><input class="fi" id="a_url" placeholder="https://..." inputmode="url"></div>
+  <div class="fg"><label class="fl">Tipo</label>
+    <select class="fs" id="a_tp">
+      <option value="github">💻 GitHub</option>
+      <option value="drive">📂 Google Drive</option>
+      <option value="notion">📝 Notion</option>
+      <option value="contrato">📋 Contrato</option>
+      <option value="otro">🔗 Otro</option>
+    </select>
+  </div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mArchivo')">Cancelar</button>
+    <button class="btn btn-g" onclick="saveArchivo()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- AIMAX Links -->
+<div class="mo" id="mAimaxLink"><div class="md">
+  <div class="md-handle"></div>
+  <div class="md-title">Nuevo Link AIMAX</div>
+  <div class="fg"><label class="fl">Nombre del link *</label><input class="fi" id="al_nom" placeholder="Ej: Términos y Condiciones"></div>
+  <div class="fg"><label class="fl">Descripción</label><input class="fi" id="al_desc" placeholder="Ej: Enviar antes del pago para que el cliente acepte"></div>
+  <div class="fg"><label class="fl">URL *</label><input class="fi" id="al_url" placeholder="https://..." inputmode="url"></div>
+  <div class="fg"><label class="fl">Tipo</label>
+    <select class="fs" id="al_tp">
+      <option value="terminos">📄 Términos y Condiciones</option>
+      <option value="propuesta">💼 Propuesta Comercial</option>
+      <option value="menu">🍽️ Menú Digital</option>
+      <option value="github">💻 GitHub</option>
+      <option value="drive">📂 Google Drive</option>
+      <option value="otro">🔗 Otro</option>
+    </select>
+  </div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeM('mAimaxLink')">Cancelar</button>
+    <button class="btn btn-g" onclick="saveAimaxLink()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- Nota pantalla completa -->
+<div class="nota-screen" id="notaScreen">
+  <div class="nota-topbar">
+    <button class="nota-back" onclick="closeNotaScreen()">
+      <span class="nota-back-ico">←</span> Notas
+    </button>
+    <div class="nota-actions">
+      <button class="nota-star-btn" id="ns-star" onclick="toggleStarScreen()">☆</button>
+      <button class="nota-del-btn" id="ns-del" onclick="delNotaScreen()" title="Eliminar">🗑</button>
+      <button class="nota-save-btn" onclick="saveNota()">GUARDAR</button>
+    </div>
+  </div>
+  <div class="nota-body">
+    <input class="nota-title-inp" id="n_tit" placeholder="Título...">
+    <textarea class="nota-content-inp" id="n_bod" placeholder="Escribe tu nota aquí..."></textarea>
+  </div>
+  <div class="nota-footer" id="ns-footer"></div>
+</div>
+
+<div class="toast" id="toast"><span id="tmsg"></span></div>
+
+<script src="scrip.js"></script>
+</body>
+</html>
