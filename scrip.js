@@ -31,10 +31,10 @@ document.getElementById('lockPass').addEventListener('keydown',e=>{if(e.key==='E
 // ── DATA ──
 let cfg=ld('cfg',{agencia:'AIMAX STUDIO',moneda:'COP',planes:{basico:{label:'Plan Básico',mensual:50000,setup:222000},medio:{label:'Plan Medio',mensual:100000,setup:277000},max:{label:'Plan MAX',mensual:150000,setup:333000},especial:{label:'Especial',mensual:0,setup:0}}});
 let clientes=ld('clientes',[
-  {id:1,nombre:'Kosiaka',ciudad:'Medellín',telefono:'3015513793',admin:'Jorge Flores',whatsapp:'3017482600',plan:'basico',setup:250000,mensual:50000,estado:'activo',ultimoPago:'2026-04-01',proximoPago:'2026-05-01',pagomesactual:true,link:'https://aimx-studio.github.io/Menu-Kosiaka/',notas:'Primer cliente',archivos:[],fechaInicio:'2026-01-15',logNotas:[]},
-  {id:2,nombre:'La Torre',ciudad:'Ocaña',telefono:'3222489307',admin:'Miller',whatsapp:'3182231625',plan:'basico',setup:200000,mensual:50000,estado:'activo',ultimoPago:'2026-03-23',proximoPago:'2026-05-01',pagomesactual:true,link:'https://aimx-studio.github.io/Menu-LaTorre/',notas:'Todo en orden',archivos:[],fechaInicio:'2026-01-20',logNotas:[]},
-  {id:3,nombre:'Navarra',ciudad:'Pamplona',telefono:'3223101369',admin:'Heidy Triana',whatsapp:'3223101369',plan:'especial',setup:100000,mensual:0,estado:'activo',ultimoPago:'2026-03-29',proximoPago:'',pagomesactual:false,link:'https://aimx-studio.github.io/Men-Navarra/',notas:'Me dijo que tiene poco flujo',archivos:[],fechaInicio:'2026-02-01',logNotas:[]},
-  {id:4,nombre:'El Bembe Gastro Bar',ciudad:'Funza',telefono:'3248009246',admin:'Valerie Tamayo',whatsapp:'3014825194',plan:'medio',setup:0,mensual:100000,estado:'prueba',ultimoPago:'',proximoPago:'',pagomesactual:false,link:'https://aimx-studio.github.io/Menu-El-Bembe/',notas:'En período de prueba',archivos:[],fechaInicio:'2026-04-01',logNotas:[]}
+  {id:1,nombre:'Kosiaka',ciudad:'Medellín',telefono:'3015513793',admin:'Jorge Flores',whatsapp:'3017482600',plan:'basico',setup:250000,mensual:50000,estado:'activo',ultimoPago:'2026-04-01',proximoPago:'2026-05-01',pagomesactual:true,menuLink:'https://aimx-studio.github.io/Menu-Kosiaka/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[{id:1,dia:1,monto:50000,estado:'pendiente'}],notas:'Primer cliente',archivos:[],fechaInicio:'2026-01-15',logNotas:[]},
+  {id:2,nombre:'La Torre',ciudad:'Ocaña',telefono:'3222489307',admin:'Miller',whatsapp:'3182231625',plan:'basico',setup:200000,mensual:50000,estado:'activo',ultimoPago:'2026-03-23',proximoPago:'2026-05-01',pagomesactual:true,menuLink:'https://aimx-studio.github.io/Menu-LaTorre/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[{id:1,dia:1,monto:50000,estado:'pendiente'}],notas:'Todo en orden',archivos:[],fechaInicio:'2026-01-20',logNotas:[]},
+  {id:3,nombre:'Navarra',ciudad:'Pamplona',telefono:'3223101369',admin:'Heidy Triana',whatsapp:'3223101369',plan:'especial',setup:100000,mensual:0,estado:'activo',ultimoPago:'2026-03-29',proximoPago:'',pagomesactual:false,menuLink:'https://aimx-studio.github.io/Men-Navarra/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[],notas:'Me dijo que tiene poco flujo',archivos:[],fechaInicio:'2026-02-01',logNotas:[]},
+  {id:4,nombre:'El Bembe Gastro Bar',ciudad:'Funza',telefono:'3248009246',admin:'Valerie Tamayo',whatsapp:'3014825194',plan:'medio',setup:0,mensual:100000,estado:'prueba',ultimoPago:'',proximoPago:'',pagomesactual:false,menuLink:'https://aimx-studio.github.io/Menu-El-Bembe/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[{id:1,dia:1,monto:50000,estado:'pendiente'},{id:2,dia:15,monto:50000,estado:'pendiente'}],notas:'En período de prueba',archivos:[],fechaInicio:'2026-04-01',logNotas:[]}
 ]);
 let pagos=ld('pagos',[
   {id:1,clienteId:1,tipo:'instalacion',monto:250000,fecha:'2026-01-15',estado:'pagado',notas:'Set up Kosiaka'},
@@ -152,20 +152,41 @@ function rDash(){
   // Cobros alert banner — próximos 5 días
   const hoy=new Date();hoy.setHours(0,0,0,0);
   const en5=new Date(hoy);en5.setDate(en5.getDate()+5);
-  const proximos=clientes.filter(c=>{
-    if(!c.proximoPago||planMensual(c.plan)<=0)return false;
-    const fp=new Date(c.proximoPago);fp.setHours(0,0,0,0);
-    return fp>=hoy&&fp<=en5;
-  }).sort((a,b)=>new Date(a.proximoPago)-new Date(b.proximoPago));
+  // Generar alertas por cuotas individuales
+  const alertasCuotas=[];
+  clientes.forEach(c=>{
+    if(planMensual(c.plan)<=0)return;
+    if(c.cuotas&&c.cuotas.length>0){
+      // Cuotas definidas: generar alerta por cada cuota
+      c.cuotas.forEach(cuota=>{
+        const diaHoy=hoy.getDate();
+        const mesHoy=hoy.getMonth();
+        const anioHoy=hoy.getFullYear();
+        // Calcular próxima fecha de esta cuota
+        let fechaCuota=new Date(anioHoy,mesHoy,cuota.dia);fechaCuota.setHours(0,0,0,0);
+        if(fechaCuota<hoy){fechaCuota=new Date(anioHoy,mesHoy+1,cuota.dia);fechaCuota.setHours(0,0,0,0);}
+        if(fechaCuota>=hoy&&fechaCuota<=en5){
+          alertasCuotas.push({nombre:c.nombre,dia:cuota.dia,monto:cuota.monto,fecha:fechaCuota,clienteId:c.id});
+        }
+      });
+    } else if(c.proximoPago){
+      // Sin cuotas definidas: usar proximoPago normal
+      const fp=new Date(c.proximoPago);fp.setHours(0,0,0,0);
+      if(fp>=hoy&&fp<=en5){
+        alertasCuotas.push({nombre:c.nombre,dia:fp.getDate(),monto:planMensual(c.plan),fecha:fp,clienteId:c.id});
+      }
+    }
+  });
+  alertasCuotas.sort((a,b)=>a.fecha-b.fecha);
   const alertEl=document.getElementById('d-cobro-alert');
-  if(proximos.length){
-    const diasLabel=d=>{const diff=Math.round((new Date(d)-hoy)/(1000*60*60*24));return diff===0?'HOY':diff===1?'MAÑANA':`en ${diff} días`;};
+  if(alertasCuotas.length){
+    const diasLabel=d=>{const diff=Math.round((d-hoy)/(1000*60*60*24));return diff===0?'HOY':diff===1?'MAÑANA':`en ${diff} días`;};
     alertEl.innerHTML=`<div class="cobro-alert">
       <div class="cobro-alert-ico">⚡</div>
       <div class="cobro-alert-body">
         <div class="cobro-alert-title">Cobros en los próximos 5 días</div>
         <div class="cobro-alert-items">
-          ${proximos.map(c=>`<div class="cobro-alert-item"><b>${c.nombre}</b><span style="color:var(--ye);font-weight:700">${diasLabel(c.proximoPago)} · ${COP(planMensual(c.plan))}</span></div>`).join('')}
+          ${alertasCuotas.map(a=>`<div class="cobro-alert-item"><b>${a.nombre}</b><span style="color:var(--ye);font-weight:700">${diasLabel(a.fecha)} · día ${a.dia} · ${COP(a.monto)}</span></div>`).join('')}
         </div>
       </div>
     </div>`;
@@ -173,12 +194,13 @@ function rDash(){
     alertEl.innerHTML='';
   }
 
-  // Cobros como cards
+  // Cobros como cards — con desglose de cuotas
   document.getElementById('d-cobros').innerHTML=clientes.map(c=>{
     const m=planMensual(c.plan);
     const waNum=(c.whatsapp||c.telefono||'').replace(/\D/g,'');
     const waMsg=encodeURIComponent(`Hola ${c.admin||c.nombre} 👋, te escribo de *AIMAX STUDIO*.\n\nTu mensualidad de *${COP(m)}* está próxima (${c.proximoPago||'este mes'}). Por favor avísame cuando puedas hacer el pago. ¡Gracias! 🙏`);
     const waLink=waNum?`<a href="https://wa.me/57${waNum}?text=${waMsg}" target="_blank" class="btn btn-ghost btn-sm" title="Enviar recordatorio por WhatsApp" style="color:#25D366;border-color:rgba(37,211,102,.3)">💬 WhatsApp</a>`:'';
+    const cuotasHtml=c.cuotas&&c.cuotas.length>1?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">${c.cuotas.map(q=>`<span style="font-size:10px;background:var(--b5);border:1px solid var(--bd2);border-radius:5px;padding:2px 7px;color:var(--t2)">Día ${q.dia}: ${COP(q.monto)}</span>`).join('')}</div>`:'';
     return `<div class="pago-card" style="margin-bottom:9px">
       <div class="pago-row">
         <div class="pago-info">
@@ -187,6 +209,7 @@ function rDash(){
             ${c.nombre}
           </div>
           <div class="pago-sub">📍 ${c.ciudad} · <span class="bdg bgo" style="font-size:10px">${planLabel(c.plan)}</span></div>
+          ${cuotasHtml}
         </div>
         <div class="pago-amount">${m>0?COP(m):'N/A'}</div>
       </div>
@@ -236,8 +259,8 @@ function rCl(s=''){
       </div>
       <div class="cl-card-actions">
         <button class="btn btn-ghost btn-sm" onclick="verCl(${c.id})">Ver detalle</button>
-        ${c.link?`<a class="btn btn-ghost btn-sm" href="${c.link}" target="_blank">🔗 Menú</a>`:''}
-        ${c.dashboard?`<a class="btn btn-blue btn-sm" href="${c.dashboard}" target="_blank">📊 Dashboard</a>`:''}
+        ${c.menuLink?`<a class="btn btn-ghost btn-sm" href="${c.menuLink}" target="_blank">🔗 Menú</a>`:''}
+        ${c.dashboardUrl?`<a class="btn btn-blue btn-sm" href="${c.dashboardUrl}" target="_blank">📊 Dashboard</a>`:''}
         ${c.repo?`<button class="btn btn-sm ${c.menuActivo===false?'btn-g':'btn-danger'}" onclick="toggleMenu(${c.id})">${c.menuActivo===false?'✅ Activar menú':'⛔ Desactivar menú'}</button><span style="font-size:10px;color:${c.menuActivo===false?'var(--re)':'var(--gr)'}"> ${c.menuActivo===false?'● Suspendido':'● Activo'}</span>`:''}
         <button class="btn btn-danger btn-sm" onclick="delCl(${c.id})">🗑</button>
       </div>
@@ -268,8 +291,22 @@ function verCl(id){
       ${diasCliente!==null?`<div><div class="cl">Cliente desde</div><div class="cv" style="color:var(--g);font-weight:700">${diasCliente} días</div></div>`:''}
       <div><div class="cl">Pago este mes</div><div class="cv"><div class="pay-dot ${c.pagomesactual?'paid':'unpaid'}" style="display:inline-block;margin-right:5px"></div>${c.pagomesactual?'Al día':'Pendiente'}</div></div>
     </div>
-    ${c.link?`<div style="margin-bottom:10px"><a class="alink" href="${c.link}" target="_blank">🔗 Ver menú digital</a></div>`:''}
-    ${c.dashboard?`<div style="margin-bottom:10px"><a class="alink" href="${c.dashboard}" target="_blank" style="color:var(--bl)">📊 Ver dashboard</a></div>`:''}
+    ${c.menuLink?`<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--b4);border-radius:8px;padding:8px 12px"><a class="alink" href="${c.menuLink}" target="_blank">🔗 Link menú WhatsApp</a><button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText('${c.menuLink}').then(()=>toast('📋 Link copiado'))">📋</button></div>`:''}
+    ${c.dashboardUrl?`<div style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;background:var(--b4);border-radius:8px;padding:8px 12px"><a class="alink" href="${c.dashboardUrl}" target="_blank" style="color:var(--bl)">📊 Dashboard Netlify</a><button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText('${c.dashboardUrl}').then(()=>toast('📋 URL copiada'))">📋</button></div>`:''}
+    ${(c.sb_url||c.sb_key||c.sb_user)?`
+    <div style="background:var(--b4);border:1px solid rgba(201,162,39,.15);border-radius:var(--r2);padding:12px;margin-bottom:12px">
+      <div style="font-size:10px;color:var(--g);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px">🔐 Credenciales Dashboard</div>
+      ${c.sb_url?`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">URL Supabase</div><div style="font-size:12px;color:var(--t2);word-break:break-all">${c.sb_url}</div></div><button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText('${c.sb_url}').then(()=>toast('📋 Copiado'))">📋</button></div>`:''}
+      ${c.sb_key?`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">API Key</div><div style="font-size:12px;color:var(--t2);font-family:'JetBrains Mono';word-break:break-all">${c.sb_key.substring(0,30)}…</div></div><button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText('${c.sb_key}').then(()=>toast('📋 Copiado'))">📋</button></div>`:''}
+      ${c.sb_table?`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">Tabla</div><div style="font-size:12px;color:var(--t2)">${c.sb_table}</div></div><button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText('${c.sb_table}').then(()=>toast('📋 Copiado'))">📋</button></div>`:''}
+      ${c.sb_user?`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">Usuario</div><div style="font-size:12px;color:var(--t2)">${c.sb_user}</div></div><button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText('${c.sb_user}').then(()=>toast('📋 Copiado'))">📋</button></div>`:''}
+      ${c.sb_pass?`<div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px">Contraseña</div><div style="font-size:12px;color:var(--t2);font-family:'JetBrains Mono'">${c.sb_pass}</div></div><button class="btn btn-ghost btn-xs" onclick="navigator.clipboard.writeText('${c.sb_pass}').then(()=>toast('📋 Copiado'))">📋</button></div>`:''}
+    </div>`:''}
+    ${c.cuotas&&c.cuotas.length>1?`
+    <div style="background:var(--b4);border:1px solid rgba(59,130,246,.15);border-radius:var(--r2);padding:12px;margin-bottom:12px">
+      <div style="font-size:10px;color:var(--bl);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">💳 Esquema de cuotas</div>
+      ${c.cuotas.map(q=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd)"><span style="font-size:13px;color:var(--t2)">Cuota día <b>${q.dia}</b></span><span style="color:var(--gr);font-weight:700;font-size:13px">${COP(q.monto)}</span></div>`).join('')}
+    </div>`:''}
     ${c.notas?`<div class="nbox" style="margin-bottom:12px">${c.notas}</div>`:''}
     <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Historial de pagos</div>
     <div style="max-height:150px;overflow-y:auto">
@@ -300,12 +337,20 @@ function editCl(id){
   document.getElementById('c_dia').value=c.diaPago||'';
   document.getElementById('c_up').value=c.ultimoPago||'';
   document.getElementById('c_inicio').value=c.fechaInicio||'';
-  document.getElementById('c_lnk').value=c.link||'';
-  document.getElementById('c_dash').value=c.dashboard||'';
+  document.getElementById('c_lnk').value=c.menuLink||'';
+  document.getElementById('c_dash').value=c.dashboardUrl||'';
   document.getElementById('c_repo').value=c.repo||'';
   document.getElementById('c_not').value=c.notas||'';
   document.getElementById('c_plan').value=c.plan;
   document.getElementById('c_est').value=c.estado;
+  // Credenciales Supabase
+  document.getElementById('c_sb_url').value=c.sb_url||'';
+  document.getElementById('c_sb_key').value=c.sb_key||'';
+  document.getElementById('c_sb_table').value=c.sb_table||'pedidos';
+  document.getElementById('c_sb_user').value=c.sb_user||'';
+  document.getElementById('c_sb_pass').value=c.sb_pass||'';
+  // Cuotas
+  renderCuotasForm(c.cuotas||[]);
   openM('mCl');
 }
 function delCl(id){if(!confirm('¿Eliminar cliente?'))return;clientes=clientes.filter(c=>c.id!==id);sv('clientes',clientes);rCl();rDash();toast('Cliente eliminado');}
@@ -702,7 +747,7 @@ function rConfig(){
     <!-- ACERCA -->
     <div class="cfg-section">
       <div class="cfg-title">ℹ️ Acerca de</div>
-      <div class="cfg-row"><div class="cfg-lbl">Versión</div><div>AIMAX CRM v7.0</div></div>
+      <div class="cfg-row"><div class="cfg-lbl">Versión</div><div>AIMAX CRM v8.0</div></div>
       <div class="cfg-row" style="border-bottom:none"><div class="cfg-lbl">Almacenamiento</div><div id="cfg-storage">—</div></div>
     </div>`;
   const used=Object.keys(localStorage).filter(k=>k.startsWith('am4_')).reduce((s,k)=>s+(localStorage.getItem(k)||'').length,0);
@@ -752,6 +797,14 @@ function saveCl(){
   const ciu=document.getElementById('c_ciu').value.trim();
   if(!nom||!ciu){toast('⚠️ Nombre y ciudad requeridos');return;}
   const planV=document.getElementById('c_plan').value;
+  // Recoger cuotas del formulario
+  const cuotasRows=document.querySelectorAll('#cuotas-list .cuota-row');
+  const cuotas=[];
+  cuotasRows.forEach((row,i)=>{
+    const dia=parseInt(row.querySelector('.cuota-dia').value)||1;
+    const monto=parseInt(row.querySelector('.cuota-monto').value)||0;
+    if(monto>0)cuotas.push({id:nid()+i,dia,monto,estado:'pendiente'});
+  });
   const obj={
     id:editClId||nid(),nombre:nom,ciudad:ciu,
     telefono:document.getElementById('c_tel').value.trim(),
@@ -763,10 +816,16 @@ function saveCl(){
     estado:document.getElementById('c_est').value,
     ultimoPago:document.getElementById('c_up').value,
     proximoPago:'',pagomesactual:false,
-    link:document.getElementById('c_lnk').value.trim(),
-    dashboard:document.getElementById('c_dash').value.trim(),
+    menuLink:document.getElementById('c_lnk').value.trim(),
+    dashboardUrl:document.getElementById('c_dash').value.trim(),
     repo:document.getElementById('c_repo').value.trim(),
     notas:document.getElementById('c_not').value.trim(),
+    sb_url:document.getElementById('c_sb_url').value.trim(),
+    sb_key:document.getElementById('c_sb_key').value.trim(),
+    sb_table:document.getElementById('c_sb_table').value.trim()||'pedidos',
+    sb_user:document.getElementById('c_sb_user').value.trim(),
+    sb_pass:document.getElementById('c_sb_pass').value.trim(),
+    cuotas,
     archivos:[]
   };
   obj.fechaInicio=document.getElementById('c_inicio').value||null;
@@ -859,9 +918,11 @@ function openM(id){
   if(id==='mMeta'){document.getElementById('m_ing').value=metas.ingresos;document.getElementById('m_cl').value=metas.clientes;document.getElementById('m_pi').value=metas.leads;document.getElementById('m_ci').value=metas.cierres;}
   if(id==='mCl'&&!editClId){
     document.getElementById('mCl-title').textContent='Nuevo Cliente';
-    ['c_nom','c_ciu','c_tel','c_adm','c_wa','c_su','c_dia','c_up','c_inicio','c_lnk','c_dash','c_repo','c_not'].forEach(i=>document.getElementById(i).value='');
+    ['c_nom','c_ciu','c_tel','c_adm','c_wa','c_su','c_dia','c_up','c_inicio','c_lnk','c_dash','c_repo','c_not','c_sb_url','c_sb_key','c_sb_user','c_sb_pass'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('c_sb_table').value='pedidos';
     document.getElementById('c_plan').value='basico';
     document.getElementById('c_est').value='activo';
+    renderCuotasForm([]);
   }
   if(id==='mPipe'&&!editPipeId){
     ['pi_nom','pi_ciu','pi_wa','pi_not','pi_prox','pi_prox_fecha'].forEach(i=>document.getElementById(i).value='');
@@ -1114,6 +1175,38 @@ function toggleStarScreen(){
     saveNota();
     if(editNotaId){const n=notas.find(x=>x.id===editNotaId);if(n){n.starred=true;sv('notas',notas);document.getElementById('ns-star').textContent='⭐';document.getElementById('ns-star').className='nota-star-btn on';}}
   }
+}
+
+// ── CUOTAS FORM HELPERS ──
+function renderCuotasForm(cuotas){
+  const list=document.getElementById('cuotas-list');
+  if(!list)return;
+  if(cuotas.length===0){list.innerHTML='<div style="font-size:12px;color:var(--t3);padding:4px 0">Sin cuotas definidas — el pago se cobra completo en el día de cobro.</div>';return;}
+  list.innerHTML=cuotas.map((q,i)=>`
+    <div class="cuota-row" style="display:flex;align-items:center;gap:7px;background:var(--b5);border-radius:7px;padding:7px 10px">
+      <div style="flex:1">
+        <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Día del mes</div>
+        <input class="fi cuota-dia" type="number" min="1" max="31" value="${q.dia}" placeholder="1" inputmode="numeric" style="padding:6px 8px;font-size:13px">
+      </div>
+      <div style="flex:1">
+        <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Monto (COP)</div>
+        <input class="fi cuota-monto" type="number" value="${q.monto}" placeholder="50000" inputmode="numeric" style="padding:6px 8px;font-size:13px">
+      </div>
+      <button type="button" onclick="removeCuotaRow(this)" style="background:none;border:none;color:var(--re);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;margin-top:12px">✕</button>
+    </div>`).join('');
+}
+function addCuotaRow(){
+  const list=document.getElementById('cuotas-list');
+  // Collect current rows first
+  const existing=Array.from(list.querySelectorAll('.cuota-row')).map(r=>({dia:parseInt(r.querySelector('.cuota-dia').value)||1,monto:parseInt(r.querySelector('.cuota-monto').value)||0,estado:'pendiente'}));
+  existing.push({dia:1,monto:0,estado:'pendiente'});
+  renderCuotasForm(existing);
+}
+function removeCuotaRow(btn){
+  const row=btn.closest('.cuota-row');
+  const list=document.getElementById('cuotas-list');
+  row.remove();
+  if(!list.querySelectorAll('.cuota-row').length)renderCuotasForm([]);
 }
 
 // ── INIT ──
