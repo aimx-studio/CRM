@@ -1,9 +1,26 @@
+// Parsea fechas sin desfase de zona horaria
+const parseDate = (s) => {
+  if (!s) return null;
+  const [y, m, d] = s.split('-');
+  return new Date(y, m - 1, d); // mes es 0-indexed, sin UTC
+};
+// ── SUPABASE ──
+const SB_URL='https://hotryxyvbdbizfivgfft.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvdHJ5eHl2YmRiaXpmaXZnZmZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MDk1MDMsImV4cCI6MjA5MjM4NTUwM30.e_8rXHLVKl8gGH7r65LzCbXpLVygnHJf3lSvYXqosfw';
+const sb=window.supabase.createClient(SB_URL,SB_KEY);
+
 // ── CONSTANTS ──
 const MONTHS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const COP=n=>'$'+parseInt(n||0).toLocaleString('es-CO');
 const nid=()=>Date.now()+Math.floor(Math.random()*9999);
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem('am4_'+k))||d}catch{return d}};
 const sv=(k,v)=>localStorage.setItem('am4_'+k,JSON.stringify(v));
+
+async function dbGet(t){const{data,error}=await sb.from(t).select('*');if(error){console.error(t,error);return[];}return data;}
+async function dbInsert(t,o){const{error}=await sb.from(t).insert(o);if(error)console.error(t,error);}
+async function dbUpdate(t,id,o){const{error}=await sb.from(t).update(o).eq('id',id);if(error)console.error(t,error);}
+async function dbDelete(t,id){const{error}=await sb.from(t).delete().eq('id',id);if(error)console.error(t,error);}
+async function dbUpsert(t,o){const{error}=await sb.from(t).upsert(o);if(error)console.error(t,error);}
 
 // ── PASSWORD ──
 const DEFAULT_PASS='24031066';
@@ -30,39 +47,31 @@ document.getElementById('lockPass').addEventListener('keydown',e=>{if(e.key==='E
 
 // ── DATA ──
 let cfg=ld('cfg',{agencia:'AIMAX STUDIO',moneda:'COP',planes:{basico:{label:'Plan Básico',mensual:50000,setup:222000},medio:{label:'Plan Medio',mensual:100000,setup:277000},max:{label:'Plan MAX',mensual:150000,setup:333000},especial:{label:'Especial',mensual:0,setup:0}}});
-let clientes=ld('clientes',[
-  {id:1,nombre:'Kosiaka',ciudad:'Medellín',telefono:'3015513793',admin:'Jorge Flores',whatsapp:'3017482600',plan:'basico',setup:250000,mensual:50000,estado:'activo',ultimoPago:'2026-04-01',proximoPago:'2026-05-01',pagomesactual:true,menuLink:'https://aimx-studio.github.io/Menu-Kosiaka/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[{id:1,dia:1,monto:50000,estado:'pendiente'}],notas:'Primer cliente',archivos:[],fechaInicio:'2026-01-15',logNotas:[]},
-  {id:2,nombre:'La Torre',ciudad:'Ocaña',telefono:'3222489307',admin:'Miller',whatsapp:'3182231625',plan:'basico',setup:200000,mensual:50000,estado:'activo',ultimoPago:'2026-03-23',proximoPago:'2026-05-01',pagomesactual:true,menuLink:'https://aimx-studio.github.io/Menu-LaTorre/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[{id:1,dia:1,monto:50000,estado:'pendiente'}],notas:'Todo en orden',archivos:[],fechaInicio:'2026-01-20',logNotas:[]},
-  {id:3,nombre:'Navarra',ciudad:'Pamplona',telefono:'3223101369',admin:'Heidy Triana',whatsapp:'3223101369',plan:'especial',setup:100000,mensual:0,estado:'activo',ultimoPago:'2026-03-29',proximoPago:'',pagomesactual:false,menuLink:'https://aimx-studio.github.io/Men-Navarra/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[],notas:'Me dijo que tiene poco flujo',archivos:[],fechaInicio:'2026-02-01',logNotas:[]},
-  {id:4,nombre:'El Bembe Gastro Bar',ciudad:'Funza',telefono:'3248009246',admin:'Valerie Tamayo',whatsapp:'3014825194',plan:'medio',setup:0,mensual:100000,estado:'prueba',ultimoPago:'',proximoPago:'',pagomesactual:false,menuLink:'https://aimx-studio.github.io/Menu-El-Bembe/',dashboardUrl:'',sb_url:'',sb_key:'',sb_table:'pedidos',sb_user:'',sb_pass:'',cuotas:[{id:1,dia:1,monto:50000,estado:'pendiente'},{id:2,dia:15,monto:50000,estado:'pendiente'}],notas:'En período de prueba',archivos:[],fechaInicio:'2026-04-01',logNotas:[]}
-]);
-let pagos=ld('pagos',[
-  {id:1,clienteId:1,tipo:'instalacion',monto:250000,fecha:'2026-01-15',estado:'pagado',notas:'Set up Kosiaka'},
-  {id:2,clienteId:2,tipo:'instalacion',monto:200000,fecha:'2026-01-20',estado:'pagado',notas:'Set up La Torre'},
-  {id:3,clienteId:3,tipo:'instalacion',monto:100000,fecha:'2026-02-01',estado:'pagado',notas:'Set up Navarra'},
-  {id:4,clienteId:1,tipo:'mensualidad',monto:50000,fecha:'2026-02-01',estado:'pagado',notas:''},
-  {id:5,clienteId:2,tipo:'mensualidad',monto:50000,fecha:'2026-02-23',estado:'pagado',notas:''},
-  {id:6,clienteId:1,tipo:'mensualidad',monto:50000,fecha:'2026-03-01',estado:'pagado',notas:''},
-  {id:7,clienteId:2,tipo:'mensualidad',monto:50000,fecha:'2026-03-23',estado:'pagado',notas:''},
-  {id:8,clienteId:1,tipo:'mensualidad',monto:50000,fecha:'2026-04-01',estado:'pagado',notas:''},
-  {id:9,clienteId:2,tipo:'mensualidad',monto:50000,fecha:'2026-04-01',estado:'pagado',notas:''}
-]);
-let pipeline=ld('pipeline',[
-  {id:1,nombre:'Restaurante El Rancho',ciudad:'Montería',contacto:'3001234567',etapa:'contactado',notas:'Le gustó el demo',fecha:'2026-04-10',interes:'alto'},
-  {id:2,nombre:'Pizzería La Bella',ciudad:'Barranquilla',contacto:'3109876543',etapa:'propuesta',notas:'Enviada cotización Plan Medio',fecha:'2026-04-15',interes:'medio'},
-  {id:3,nombre:'Asados Don Pedro',ciudad:'Medellín',contacto:'3207654321',etapa:'demo',notas:'Demo agendado para la semana',fecha:'2026-04-18',interes:'alto'}
-]);
-let tareas=ld('tareas',[
-  {id:1,texto:'Revisar actualización de menú Kosiaka',clienteId:1,prioridad:'alta',hecha:false},
-  {id:2,texto:'Seguimiento El Bembe Gastro Bar',clienteId:4,prioridad:'normal',hecha:false},
-  {id:3,texto:'Enviar propuesta a restaurantes Montería',clienteId:null,prioridad:'normal',hecha:false}
-]);
-let archivos=ld('archivos',[
-  {id:1,clienteId:1,nombre:'Repositorio GitHub Kosiaka',url:'https://github.com/aimx-studio/Menu-Kosiaka',tipo:'github'},
-  {id:2,clienteId:2,nombre:'Repositorio GitHub La Torre',url:'https://github.com/aimx-studio/Menu-LaTorre',tipo:'github'}
-]);
-let metas=ld('metas',{ingresos:500000,clientes:8,leads:20,cierres:3});
-let notas=ld('notas',[]);
+let clientes=[],pagos=[],pipeline=[],tareas=[],archivos=[],notas=[],aimaxLinks=[];
+let metas={ingresos:500000,clientes:8,leads:20,cierres:3};
+
+function mapC(c){return{...c,diaPago:c.dia_pago,ultimoPago:c.ultimo_pago,proximoPago:c.proximo_pago||'',pagomesactual:c.pago_mes_actual,menuLink:c.menu_link,dashboardUrl:c.dashboard_url,menuActivo:c.menu_activo,fechaInicio:c.fecha_inicio,logNotas:c.log_notas||[],cuotas:c.cuotas||[]};}
+function mapP(p){return{...p,clienteId:p.cliente_id};}
+function mapL(l){return{...l,proximaAccion:l.proxima_accion,proximaAccionFecha:l.proxima_accion_fecha};}
+function mapT(t){return{...t,clienteId:t.cliente_id};}
+function mapAL(l){return{...l,desc:l.descripcion};}
+
+async function initData(){
+  toast('⏳ Cargando datos...');
+  const[cl,pg,pi,tk,ar,nt,al]=await Promise.all([dbGet('clientes'),dbGet('pagos'),dbGet('pipeline'),dbGet('tareas'),dbGet('archivos'),dbGet('notas'),dbGet('aimax_links')]);
+  clientes=cl.map(mapC);
+  pagos=pg.map(mapP);
+  pipeline=pi.map(mapL);
+  tareas=tk.map(mapT);
+  archivos=ar.map(c=>({...c,clienteId:c.cliente_id}));
+  notas=nt;
+  aimaxLinks=al.map(mapAL);
+  const{data:mt}=await sb.from('metas').select('*').eq('id',1).single();
+  if(mt)metas=mt;
+  const{data:cfgData}=await sb.from('config').select('*').eq('id',1).single();
+  if(cfgData?.data)cfg=cfgData.data;
+  rDash();updateBadges();toast('✅ Datos cargados');
+}
 
 // State
 let clFil='todos',tkFil='todas',arFil='todos',pagoFil='todos',editClId=null,editPipeId=null;
@@ -115,7 +124,7 @@ function buildBars(months,offset,colorStyle){
   const bars=[];
   for(let i=months-1;i>=0;i--){
     const d=new Date(now.getFullYear(),now.getMonth()-i+offset,1);
-    const tot=pagos.filter(p=>{const pd=new Date(p.fecha);return pd.getMonth()===d.getMonth()&&pd.getFullYear()===d.getFullYear()&&p.estado==='pagado';}).reduce((s,p)=>s+p.monto,0);
+    const tot=pagos.filter(p=>{const pd=parseDate(p.fecha);return pd.getMonth()===d.getMonth()&&pd.getFullYear()===d.getFullYear()&&p.estado==='pagado';}).reduce((s,p)=>s+p.monto,0);
     bars.push({l:MONTHS[d.getMonth()]+' '+String(d.getFullYear()).slice(2),v:tot,m:d.getMonth(),y:d.getFullYear()});
   }
   const mx=Math.max(...bars.map(b=>b.v),1);
@@ -129,7 +138,7 @@ function rDash(){
   const act=clientes.filter(c=>c.estado==='activo');
   const mrr=act.reduce((s,c)=>s+planMensual(c.plan),0);
   const now=new Date();
-  const mesPag=pagos.filter(p=>{const d=new Date(p.fecha);return p.estado==='pagado'&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,p)=>s+p.monto,0);
+  const mesPag=pagos.filter(p=>{const d=parseDate(p.fecha);return p.estado==='pagado'&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,p)=>s+p.monto,0);
   const totRec=pagos.filter(p=>p.estado==='pagado').reduce((s,p)=>s+p.monto,0);
   document.getElementById('d-kpis').innerHTML=[
     {l:'MRR Activo',v:COP(mrr),s:'mensual',cls:''},
@@ -310,7 +319,7 @@ function verCl(id){
     ${c.notas?`<div class="nbox" style="margin-bottom:12px">${c.notas}</div>`:''}
     <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Historial de pagos</div>
     <div style="max-height:150px;overflow-y:auto">
-      ${hist.length?hist.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(p=>`<div class="hi"><div><div style="font-size:13px;font-weight:600">${p.tipo==='mensualidad'?'Mensualidad':p.tipo==='instalacion'?'Instalación':'Otro'}</div><div class="hi-d">${p.fecha}</div></div><div style="text-align:right"><div class="hi-a">${COP(p.monto)}</div><span class="bdg ${p.estado==='pagado'?'bg':'by'}">${p.estado}</span></div></div>`).join(''):'<div style="color:var(--t3);font-size:13px;padding:6px 0">Sin pagos</div>'}
+      ${hist.length?hist.sort((a,b)=>parseDate(b.fecha)-parseDate(a.fecha)).map(p=>`<div class="hi"><div><div style="font-size:13px;font-weight:600">${p.tipo==='mensualidad'?'Mensualidad':p.tipo==='instalacion'?'Instalación':'Otro'}</div><div class="hi-d">${p.fecha}</div></div><div style="text-align:right"><div class="hi-a">${COP(p.monto)}</div><span class="bdg ${p.estado==='pagado'?'bg':'by'}">${p.estado}</span></div></div>`).join(''):'<div style="color:var(--t3);font-size:13px;padding:6px 0">Sin pagos</div>'}
     </div>
     <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px">📋 Log de conversaciones</div>
     <div class="log-list" id="log-list-${id}">
@@ -377,14 +386,14 @@ function setPagoF(f,el){pagoFil2=f;document.querySelectorAll('#pg-pagos .chip').
 
 function rPagos(){
   const now=new Date();
-  const mes=pagos.filter(p=>{const d=new Date(p.fecha);return p.estado==='pagado'&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,p)=>s+p.monto,0);
+  const mes=pagos.filter(p=>{const d=parseDate(p.fecha);return p.estado==='pagado'&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,p)=>s+p.monto,0);
   const pend=pagos.filter(p=>p.estado==='pendiente').reduce((s,p)=>s+p.monto,0);
   const inst=pagos.filter(p=>p.tipo==='instalacion'&&p.estado==='pagado').reduce((s,p)=>s+p.monto,0);
   document.getElementById('p-kpis').innerHTML=[
     {l:'Este mes',v:COP(mes),cls:'green'},{l:'Por cobrar',v:COP(pend),cls:'red'},{l:'Instalaciones',v:COP(inst),cls:''}
   ].map(k=>`<div class="kpi ${k.cls}"><div class="kpi-l">${k.l}</div><div class="kpi-v">${k.v}</div></div>`).join('');
 
-  let list=[...pagos].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  let list=[...pagos].sort((a,b)=>parseDate(b.fecha)-parseDate(a.fecha));
   if(pagoFil2==='pagado')list=list.filter(p=>p.estado==='pagado');
   else if(pagoFil2==='pendiente')list=list.filter(p=>p.estado==='pendiente');
   else if(pagoFil2==='mensualidad')list=list.filter(p=>p.tipo==='mensualidad');
@@ -494,7 +503,7 @@ function delPipe(id,e){e&&e.stopPropagation();if(!confirm('¿Eliminar lead?'))re
 // ── METAS ──
 function rMetas(){
   const now=new Date();
-  const mesPag=pagos.filter(p=>{const d=new Date(p.fecha);return p.estado==='pagado'&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,p)=>s+p.monto,0);
+  const mesPag=pagos.filter(p=>{const d=parseDate(p.fecha);return p.estado==='pagado'&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,p)=>s+p.monto,0);
   const items=[
     {label:'Ingresos del mes',actual:mesPag,meta:metas.ingresos,fmt:v=>COP(v),color:'',icon:'💵'},
     {label:'Clientes activos',actual:clientes.filter(c=>c.estado==='activo').length,meta:metas.clientes,fmt:v=>v,color:'green',icon:'🍽️'},
@@ -629,11 +638,6 @@ function rArchivos(){
 function setArF(f,el){arFil=f;document.querySelectorAll('#ar-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');rArchivos();}
 function delArchivo(id){archivos=archivos.filter(a=>a.id!==id);sv('archivos',archivos);rArchivos();toast('Archivo eliminado');}
 
-// ── AIMAX LINKS ──
-let aimaxLinks=ld('aimaxLinks',[
-  {id:1,nombre:'Propuesta Comercial',desc:'Enviar cuando el cliente muestra interés real',url:'',tipo:'propuesta'},
-  {id:2,nombre:'Términos y Condiciones',desc:'Enviar antes del pago para formalizar el acuerdo',url:'',tipo:'terminos'}
-]);
 const alIco=t=>({terminos:'📄',propuesta:'💼',menu:'🍽️',github:'💻',drive:'📂',otro:'🔗'}[t]||'🔗');
 function rAimaxLinks(){
   const wrap=document.getElementById('aimax-links-wrap');
@@ -1210,4 +1214,4 @@ function removeCuotaRow(btn){
 }
 
 // ── INIT ──
-rDash();updateBadges();
+initData();
