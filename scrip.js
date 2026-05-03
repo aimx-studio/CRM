@@ -23,8 +23,7 @@ async function dbDelete(t,id){const{error}=await sb.from(t).delete().eq('id',id)
 async function dbUpsert(t,o){const{error}=await sb.from(t).upsert(o);if(error)console.error(t,error);}
 
 // ── PASSWORD ──
-const DEFAULT_PASS='24031066';
-let currentPass=ld('pass',DEFAULT_PASS);
+let currentPass='';
 
 function checkPass(){
   const v=document.getElementById('lockPass').value;
@@ -70,6 +69,7 @@ async function initData(){
   if(mt)metas=mt;
   const{data:cfgData}=await sb.from('config').select('*').eq('id',1).single();
   if(cfgData?.data)cfg=cfgData.data;
+if(cfgData?.pass)currentPass=cfgData.pass;
   rDash();updateBadges();toast('✅ Datos cargados');
 }
 
@@ -774,7 +774,7 @@ function checkPassStr(v){
   bar.style.background=lv.c;bar.style.width=lv.w;lbl.style.color=lv.c;lbl.textContent=lv.l;
 }
 
-function changePass(){
+async function changePass(){
   const actual=document.getElementById('pass_actual').value;
   const nueva=document.getElementById('pass_nueva').value;
   const confirma=document.getElementById('pass_confirma').value;
@@ -784,8 +784,8 @@ function changePass(){
   if(nueva!==confirma){msg.style.color='var(--re)';msg.textContent='❌ Las contraseñas no coinciden';return;}
   if(nueva===actual){msg.style.color='var(--ye)';msg.textContent='⚠️ La nueva contraseña debe ser diferente a la actual';return;}
   currentPass=nueva;
-  sv('pass',currentPass);
-  document.getElementById('pass_actual').value='';
+await dbUpsert('config',{id:1,pass:nueva,data:cfg});
+document.getElementById('pass_actual').value='';
   document.getElementById('pass_nueva').value='';
   document.getElementById('pass_confirma').value='';
   document.getElementById('pass-strength-bar').style.width='0';
