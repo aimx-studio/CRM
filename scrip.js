@@ -362,7 +362,12 @@ function editCl(id){
   renderCuotasForm(c.cuotas||[]);
   openM('mCl');
 }
-function delCl(id){if(!confirm('¿Eliminar cliente?'))return;clientes=clientes.filter(c=>c.id!==id);sv('clientes',clientes);rCl();rDash();toast('Cliente eliminado');}
+async function delCl(id){
+  if(!confirm('¿Eliminar cliente?'))return;
+  await dbDelete('clientes',id);
+  clientes=clientes.filter(c=>c.id!==id);
+  sv('clientes',clientes);rCl();rDash();toast('Cliente eliminado');
+}
 
 function addLogNota(id){
   const inp=document.getElementById('log-inp-'+id);
@@ -435,25 +440,31 @@ function editPago(id){
   document.getElementById('ep_nt').value=p.notas||'';
   openM('mEditPago');
 }
-function saveEditPago(){
+async function saveEditPago(){
   const id=parseInt(document.getElementById('ep_id').value);
   const monto=parseInt(document.getElementById('ep_mo').value);
   const fecha=document.getElementById('ep_fe').value;
   if(!monto||!fecha){toast('⚠️ Completa los campos requeridos');return;}
+  const obj={cliente_id:parseInt(document.getElementById('ep_cl').value),
+    tipo:document.getElementById('ep_tp').value,monto,fecha,
+    estado:document.getElementById('ep_es').value,
+    notas:document.getElementById('ep_nt').value};
+  await dbUpdate('pagos',id,obj);
   const i=pagos.findIndex(p=>p.id===id);
-  if(i>=0){
-    pagos[i]={...pagos[i],
-      clienteId:parseInt(document.getElementById('ep_cl').value),
-      tipo:document.getElementById('ep_tp').value,
-      monto,fecha,
-      estado:document.getElementById('ep_es').value,
-      notas:document.getElementById('ep_nt').value
-    };
-  }
+  if(i>=0) pagos[i]={...pagos[i],...obj,clienteId:obj.cliente_id};
   sv('pagos',pagos);closeM('mEditPago');rPagos();rDash();toast('✅ Pago actualizado');
 }
-function markPaid(id){const p=pagos.find(x=>x.id===id);if(p){p.estado='pagado';sv('pagos',pagos);rPagos();toast('✅ Marcado como pagado');}}
-function delPago(id){if(!confirm('¿Eliminar pago?'))return;pagos=pagos.filter(p=>p.id!==id);sv('pagos',pagos);rPagos();toast('Pago eliminado');}
+async function markPaid(id){
+  await dbUpdate('pagos',id,{estado:'pagado'});
+  const p=pagos.find(x=>x.id===id);
+  if(p){p.estado='pagado';sv('pagos',pagos);rPagos();toast('✅ Marcado como pagado');}
+}
+async function delPago(id){
+  if(!confirm('¿Eliminar pago?'))return;
+  await dbDelete('pagos',id);
+  pagos=pagos.filter(p=>p.id!==id);
+  sv('pagos',pagos);rPagos();toast('Pago eliminado');
+}
 
 // ── PIPELINE ──
 const etapas=[{k:'contactado',l:'📞 Contactado',c:'by'},{k:'demo',l:'🎬 Demo',c:'bb'},{k:'propuesta',l:'📄 Propuesta',c:'bpu'},{k:'cerrado',l:'🎉 Cerrado',c:'bg'}];
@@ -498,7 +509,13 @@ function editPipe(id){
   document.getElementById('pi_prox_fecha').value=p.proximaAccionFecha||'';
   openM('mPipe');
 }
-function delPipe(id,e){e&&e.stopPropagation();if(!confirm('¿Eliminar lead?'))return;pipeline=pipeline.filter(p=>p.id!==id);sv('pipeline',pipeline);rPipe();toast('Lead eliminado');}
+async function delPipe(id,e){
+  e&&e.stopPropagation();
+  if(!confirm('¿Eliminar lead?'))return;
+  await dbDelete('pipeline',id);
+  pipeline=pipeline.filter(p=>p.id!==id);
+  sv('pipeline',pipeline);rPipe();toast('Lead eliminado');
+}
 
 // ── METAS ──
 function rMetas(){
@@ -604,8 +621,17 @@ function rTareas(){
   updateBadges();
 }
 function setTkF(f,el){tkFil=f;document.querySelectorAll('#pg-tareas .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');rTareas();}
-function togTask(id){const t=tareas.find(x=>x.id===id);if(t){t.hecha=!t.hecha;sv('tareas',tareas);rTareas();}}
-function delTask(id){tareas=tareas.filter(t=>t.id!==id);sv('tareas',tareas);rTareas();toast('Tarea eliminada');}
+async function togTask(id){
+  const t=tareas.find(x=>x.id===id);
+  if(t){t.hecha=!t.hecha;
+    await dbUpdate('tareas',id,{hecha:t.hecha});
+    sv('tareas',tareas);rTareas();}
+}
+async function delTask(id){
+  await dbDelete('tareas',id);
+  tareas=tareas.filter(t=>t.id!==id);
+  sv('tareas',tareas);rTareas();toast('Tarea eliminada');
+}
 
 // ── ARCHIVOS ──
 const tipoIco=t=>({github:'💻',drive:'📂',notion:'📝',contrato:'📋',otro:'🔗'}[t]||'🔗');
@@ -636,7 +662,11 @@ function rArchivos(){
   }).join('');
 }
 function setArF(f,el){arFil=f;document.querySelectorAll('#ar-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');rArchivos();}
-function delArchivo(id){archivos=archivos.filter(a=>a.id!==id);sv('archivos',archivos);rArchivos();toast('Archivo eliminado');}
+async function delArchivo(id){
+  await dbDelete('archivos',id);
+  archivos=archivos.filter(a=>a.id!==id);
+  sv('archivos',archivos);rArchivos();toast('Archivo eliminado');
+}
 
 const alIco=t=>({terminos:'📄',propuesta:'💼',menu:'🍽️',github:'💻',drive:'📂',otro:'🔗'}[t]||'🔗');
 function rAimaxLinks(){
@@ -858,38 +888,62 @@ async function saveCl(){
   closeM('mCl');rCl();rDash();toast('✅ Cliente guardado');
 }
 
-function savePago(){
+async function savePago(){
   const cid=parseInt(document.getElementById('p_cl').value);
   const monto=parseInt(document.getElementById('p_mo').value);
   const fecha=document.getElementById('p_fe').value;
   if(!cid||!monto||!fecha){toast('⚠️ Completa los campos requeridos');return;}
-  pagos.push({id:nid(),clienteId:cid,tipo:document.getElementById('p_tp').value,monto,fecha,estado:document.getElementById('p_es').value,notas:document.getElementById('p_nt').value});
+  const obj={id:nid(),cliente_id:cid,tipo:document.getElementById('p_tp').value,
+    monto,fecha,estado:document.getElementById('p_es').value,
+    notas:document.getElementById('p_nt').value};
+  await dbInsert('pagos',obj);
+  pagos.push({...obj,clienteId:cid});
   sv('pagos',pagos);closeM('mPago');rPagos();rDash();toast('✅ Pago registrado');
 }
 
-function savePipe(){
+async function savePipe(){
   const nom=document.getElementById('pi_nom').value.trim();
   if(!nom){toast('⚠️ Nombre requerido');return;}
-  const obj={id:editPipeId||nid(),nombre:nom,ciudad:document.getElementById('pi_ciu').value.trim(),contacto:document.getElementById('pi_wa').value.trim(),etapa:document.getElementById('pi_eta').value,interes:document.getElementById('pi_int').value,notas:document.getElementById('pi_not').value.trim(),fecha:new Date().toISOString().split('T')[0],proximaAccion:document.getElementById('pi_prox').value.trim(),proximaAccionFecha:document.getElementById('pi_prox_fecha').value||null};
-  if(editPipeId){const i=pipeline.findIndex(p=>p.id===editPipeId);if(i>=0)pipeline[i]=obj;}
-  else pipeline.push(obj);
+  const obj={id:editPipeId||nid(),nombre:nom,
+    ciudad:document.getElementById('pi_ciu').value.trim(),
+    contacto:document.getElementById('pi_wa').value.trim(),
+    etapa:document.getElementById('pi_eta').value,
+    interes:document.getElementById('pi_int').value,
+    notas:document.getElementById('pi_not').value.trim(),
+    fecha:new Date().toISOString().split('T')[0],
+    proxima_accion:document.getElementById('pi_prox').value.trim(),
+    proxima_accion_fecha:document.getElementById('pi_prox_fecha').value||null};
+  if(editPipeId){
+    await dbUpdate('pipeline',editPipeId,obj);
+    const i=pipeline.findIndex(p=>p.id===editPipeId);
+    if(i>=0) pipeline[i]={...obj,proximaAccion:obj.proxima_accion,proximaAccionFecha:obj.proxima_accion_fecha};
+  } else {
+    await dbInsert('pipeline',obj);
+    pipeline.push({...obj,proximaAccion:obj.proxima_accion,proximaAccionFecha:obj.proxima_accion_fecha});
+  }
   editPipeId=null;document.getElementById('mPipe-title').textContent='Nuevo Lead';
   sv('pipeline',pipeline);closeM('mPipe');rPipe();toast('✅ Lead guardado');
 }
 
-function saveMeta(){
-  metas={ingresos:parseInt(document.getElementById('m_ing').value)||500000,clientes:parseInt(document.getElementById('m_cl').value)||8,leads:parseInt(document.getElementById('m_pi').value)||20,cierres:parseInt(document.getElementById('m_ci').value)||3};
+async function saveMeta(){
+  metas={ingresos:parseInt(document.getElementById('m_ing').value)||500000,
+    clientes:parseInt(document.getElementById('m_cl').value)||8,
+    leads:parseInt(document.getElementById('m_pi').value)||20,
+    cierres:parseInt(document.getElementById('m_ci').value)||3};
+  await dbUpsert('metas',{id:1,...metas});
   sv('metas',metas);closeM('mMeta');rMetas();toast('✅ Metas actualizadas');
 }
 
-function saveTarea(){
+async function saveTarea(){
   const txt=document.getElementById('t_tx').value.trim();
   if(!txt){toast('⚠️ Describe la tarea');return;}
   const cid=document.getElementById('t_cl').value;
   const dl=document.getElementById('t_dl').value;
   const prio=document.getElementById('t_pr').value;
-  const tarea={id:nid(),texto:txt,clienteId:cid?parseInt(cid):null,prioridad:prio,hecha:false,deadline:dl||null};
-  tareas.push(tarea);
+  const obj={id:nid(),texto:txt,cliente_id:cid?parseInt(cid):null,
+    prioridad:prio,hecha:false,deadline:dl||null};
+  await dbInsert('tareas',obj);
+  tareas.push({...obj,clienteId:obj.cliente_id});
   sv('tareas',tareas);closeM('mTarea');rTareas();
   if(dl){
     const cl=cid?clientes.find(c=>c.id===parseInt(cid)):null;
@@ -909,12 +963,15 @@ function buildGCalLink(titulo,fechaISO,details='',location=''){
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-function saveArchivo(){
+async function saveArchivo(){
   const cid=parseInt(document.getElementById('a_cl').value);
   const nom=document.getElementById('a_nom').value.trim();
   const url=document.getElementById('a_url').value.trim();
   if(!cid||!nom||!url){toast('⚠️ Completa todos los campos');return;}
-  archivos.push({id:nid(),clienteId:cid,nombre:nom,url,tipo:document.getElementById('a_tp').value});
+  const obj={id:nid(),cliente_id:cid,nombre:nom,url,
+    tipo:document.getElementById('a_tp').value};
+  await dbInsert('archivos',obj);
+  archivos.push({...obj,clienteId:cid});
   sv('archivos',archivos);closeM('mArchivo');rArchivos();toast('✅ Archivo guardado');
 }
 
