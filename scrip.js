@@ -369,7 +369,7 @@ async function delCl(id){
   sv('clientes',clientes);rCl();rDash();toast('Cliente eliminado');
 }
 
-function addLogNota(id){
+async function addLogNota(id){
   const inp=document.getElementById('log-inp-'+id);
   if(!inp)return;
   const txt=inp.value.trim();
@@ -378,6 +378,7 @@ function addLogNota(id){
   if(!c.logNotas)c.logNotas=[];
   const ahora=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   c.logNotas.push({id:nid(),texto:txt,fecha:ahora});
+  await dbUpdate('clientes',id,{log_notas:c.logNotas});
   sv('clientes',clientes);
   inp.value='';
   const list=document.getElementById('log-list-'+id);
@@ -690,17 +691,23 @@ function rAimaxLinks(){
       </div>
     </div>`).join('');
 }
-function saveAimaxLink(){
+async function saveAimaxLink(){
   const nom=document.getElementById('al_nom').value.trim();
   const url=document.getElementById('al_url').value.trim();
   if(!nom){toast('⚠️ Escribe el nombre');return;}
   const editId=document.getElementById('mAimaxLink').dataset.editId;
+  const obj={nombre:nom,desc:document.getElementById('al_desc').value.trim(),
+    url,tipo:document.getElementById('al_tp').value,descripcion:document.getElementById('al_desc').value.trim()};
   if(editId){
-    const l=aimaxLinks.find(x=>x.id===parseInt(editId));
-    if(l){l.nombre=nom;l.desc=document.getElementById('al_desc').value.trim();l.url=url;l.tipo=document.getElementById('al_tp').value;}
+    const lid=parseInt(editId);
+    await dbUpdate('aimax_links',lid,obj);
+    const l=aimaxLinks.find(x=>x.id===lid);
+    if(l){l.nombre=obj.nombre;l.desc=obj.desc;l.url=obj.url;l.tipo=obj.tipo;}
     delete document.getElementById('mAimaxLink').dataset.editId;
   } else {
-    aimaxLinks.push({id:nid(),nombre:nom,desc:document.getElementById('al_desc').value.trim(),url,tipo:document.getElementById('al_tp').value});
+    const newObj={id:nid(),...obj};
+    await dbInsert('aimax_links',newObj);
+    aimaxLinks.push({...newObj});
   }
   sv('aimaxLinks',aimaxLinks);closeM('mAimaxLink');rAimaxLinks();toast('✅ Link guardado');
 }
@@ -713,7 +720,11 @@ function editAimaxLink(id){
   document.getElementById('mAimaxLink').dataset.editId=id;
   openM('mAimaxLink');
 }
-function delAimaxLink(id){aimaxLinks=aimaxLinks.filter(l=>l.id!==id);sv('aimaxLinks',aimaxLinks);rAimaxLinks();toast('Link eliminado');}
+async function delAimaxLink(id){
+  await dbDelete('aimax_links',id);
+  aimaxLinks=aimaxLinks.filter(l=>l.id!==id);
+  sv('aimaxLinks',aimaxLinks);rAimaxLinks();toast('Link eliminado');
+}
 function copyLink(url){navigator.clipboard.writeText(url).then(()=>toast('📋 Link copiado')).catch(()=>toast('No se pudo copiar'));}
 
 // ── CONFIG ──
@@ -1093,6 +1104,7 @@ async function toggleMenu(id){
       c.menuActivo=false;
     }
 
+    await dbUpdate('clientes',c.id,{menu_activo:c.menuActivo});
     sv('clientes',clientes);
     rCl();
     toast(`${activar?'✅ Menú activado':'⛔ Menú suspendido'} — ${c.nombre} (puede tardar ~2 min)`);
@@ -1204,7 +1216,7 @@ function closeNotaScreen(){
   rNotas();
 }
 
-function saveNota(){
+async function saveNota(){
   const cuerpo=document.getElementById('n_bod').value.trim();
   if(!cuerpo){toast('⚠️ Escribe algo en la nota');return;}
   const titulo=document.getElementById('n_tit').value.trim();
@@ -1212,8 +1224,10 @@ function saveNota(){
   if(editNotaId){
     const i=notas.findIndex(n=>n.id===editNotaId);
     if(i>=0){notas[i].titulo=titulo;notas[i].cuerpo=cuerpo;notas[i].editado=ahora;}
+    await dbUpdate('notas',editNotaId,{titulo,cuerpo:cuerpo,editado:ahora});
   } else {
     const nuevo={id:nid(),titulo,cuerpo,starred:false,fecha:ahora};
+    await dbInsert('notas',nuevo);
     notas.push(nuevo);
     editNotaId=nuevo.id;
     document.getElementById('ns-del').style.display='inline-block';
@@ -1223,16 +1237,19 @@ function saveNota(){
   toast('✅ Nota guardada');
 }
 
-function delNotaScreen(){
+async function delNotaScreen(){
   if(!editNotaId)return;
   if(!confirm('¿Eliminar esta nota?'))return;
+  await dbDelete('notas',editNotaId);
   notas=notas.filter(n=>n.id!==editNotaId);
   sv('notas',notas);closeNotaScreen();toast('Nota eliminada');
 }
 
-function toggleStar(id){
+async function toggleStar(id){
   const n=notas.find(x=>x.id===id);if(!n)return;
-  n.starred=!n.starred;sv('notas',notas);rNotas();
+  n.starred=!n.starred;
+  await dbUpdate('notas',id,{starred:n.starred});
+  sv('notas',notas);rNotas();
 }
 
 function toggleStarScreen(){
