@@ -796,7 +796,7 @@ document.getElementById('pass_actual').value='';
 }
 
 // ── SAVE FUNCTIONS ──
-function saveCl(){
+async function saveCl(){
   const nom=document.getElementById('c_nom').value.trim();
   const ciu=document.getElementById('c_ciu').value.trim();
   if(!nom||!ciu){toast('⚠️ Nombre y ciudad requeridos');return;}
@@ -840,7 +840,20 @@ function saveCl(){
     obj.logNotas=[];
     clientes.push(obj);
   }
-  sv('clientes',clientes);editClId=null;
+  sv('clientes',clientes);
+  const dbObj={
+    nombre:obj.nombre,ciudad:obj.ciudad,telefono:obj.telefono,
+    admin:obj.admin,whatsapp:obj.whatsapp,plan:obj.plan,
+    setup:obj.setup,dia_pago:obj.diaPago,estado:obj.estado,
+    ultimo_pago:obj.ultimoPago,menu_link:obj.menuLink,
+    dashboard_url:obj.dashboardUrl,repo:obj.repo,notas:obj.notas,
+    sb_url:obj.sb_url,sb_key:obj.sb_key,sb_table:obj.sb_table,
+    sb_user:obj.sb_user,sb_pass:obj.sb_pass,cuotas:obj.cuotas,
+    fecha_inicio:obj.fechaInicio,log_notas:obj.logNotas||[]
+  };
+  if(editClId){await dbUpdate('clientes',obj.id,dbObj);}
+  else{await dbInsert('clientes',{id:obj.id,menu_activo:true,...dbObj});}
+  editClId=null;
   document.getElementById('mCl-title').textContent='Nuevo Cliente';
   closeM('mCl');rCl();rDash();toast('✅ Cliente guardado');
 }
