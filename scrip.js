@@ -859,7 +859,7 @@ async function saveCl(){
     setup:parseInt(document.getElementById('c_su').value)||0,
     diaPago:parseInt(document.getElementById('c_dia').value)||1,
     estado:document.getElementById('c_est').value,
-    ultimoPago:document.getElementById('c_up').value,
+    ultimoPago:document.getElementById('c_up').value||null,
     proximoPago:'',pagomesactual:false,
     menuLink:document.getElementById('c_lnk').value.trim(),
     dashboardUrl:document.getElementById('c_dash').value.trim(),
